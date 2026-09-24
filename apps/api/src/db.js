@@ -4,7 +4,7 @@ import pg from "pg";
 const { Pool } = pg;
 
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || "postgresql://postgres:1912@localhost:5432/necklink",
+  connectionString: process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/necklink",
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
