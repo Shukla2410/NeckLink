@@ -1,0 +1,103 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "CORR-NH27",
+        "name": "NH-27 Siliguri - Guwahati Lifeline",
+        "code": "NH-27",
+        "origin": "Siliguri",
+        "destination": "Guwahati",
+        "state": "Assam / WB",
+        "distance_km": 472.0,
+        "status": "OPEN",
+        "risk_score": 0.12
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [88.43, 26.72],
+          [89.10, 26.65],
+          [89.85, 26.50],
+          [90.45, 26.42],
+          [91.10, 26.35],
+          [91.75, 26.15]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "CORR-NH10",
+        "name": "NH-10 Siliguri - Gangtok (Teesta Valley)",
+        "code": "NH-10",
+        "origin": "Siliguri",
+        "destination": "Gangtok",
+        "state": "Sikkim",
+        "distance_km": 114.0,
+        "status": "AT_RISK",
+        "risk_score": 0.74
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [88.44, 26.73],
+          [88.46, 26.90],
+          [88.48, 27.05],
+          [88.52, 27.18],
+          [88.60, 27.33]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "CORR-NH29",
+        "name": "NH-29 Dimapur - Kohima - Imphal Arterial",
+        "code": "NH-29",
+        "origin": "Dimapur",
+        "destination": "Imphal",
+        "state": "Nagaland / Manipur",
+        "distance_km": 216.0,
+        "status": "AT_RISK",
+        "risk_score": 0.68
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [93.73, 25.90],
+          [93.85, 25.80],
+          [94.11, 25.67],
+          [94.18, 25.40],
+          [94.02, 25.08],
+          [93.94, 24.82]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "CORR-NH06",
+        "name": "NH-06 Guwahati - Shillong - Silchar",
+        "code": "NH-06",
+        "origin": "Guwahati",
+        "destination": "Silchar",
+        "state": "Meghalaya / Assam",
+        "distance_km": 308.0,
+        "status": "OPEN",
+        "risk_score": 0.22
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [91.75, 26.15],
+          [91.89, 25.58],
+          [92.20, 25.45],
+          [92.38, 25.15],
+          [92.80, 24.82]
+        ]
+      }
+    }
+  ]
+}

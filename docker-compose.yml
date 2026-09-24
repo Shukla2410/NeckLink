@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: necklink_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-1912}
+      POSTGRES_DB: necklink
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema:/docker-entrypoint-initdb.d
+
+volumes:
+  pgdata:

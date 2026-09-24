@@ -1,0 +1,26 @@
+{
+  "name": "necklink-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-based smart logistics and accessibility intelligence platform for India's North Eastern Region",
+  "scripts": {
+    "seed": "npm --prefix apps/api run seed",
+    "test:api": "npm --prefix apps/api test",
+    "test:ml": "python -m pytest apps/ml-service/test_ml_service.py -v",
+    "test": "npm run test:ml && npm run test:api",
+    "build:web": "npm --prefix apps/web run build",
+    "dev:api": "npm --prefix apps/api run dev",
+    "dev:web": "npm --prefix apps/web run dev",
+    "dev:ml": "python -m uvicorn main:app --host 127.0.0.1 --port 8000 --reload --app-dir apps/ml-service"
+  },
+  "keywords": [
+    "GIS",
+    "logistics",
+    "North-East-India",
+    "GLOF",
+    "routing",
+    "postgis"
+  ],
+  "author": "NECKLINK Team",
+  "license": "ISC"
+}

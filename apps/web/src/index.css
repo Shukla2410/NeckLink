@@ -1,0 +1,196 @@
+:root {
+  --bg-base: #1A171A;
+  --bg-surface-1: #231F24;
+  --bg-surface-2: #2B252D;
+  --bg-surface-3: #372F3A;
+  --primary-accent: #E879F9;
+  --primary-glow: rgba(232, 121, 249, 0.32);
+  --secondary-accent: #F0ABFC;
+  --text-main: #FFFFFF;
+  --text-muted: #D1CCD2;
+  --text-sub: #9E96A0;
+  --border-subtle: rgba(232, 121, 249, 0.16);
+  --border-active: rgba(232, 121, 249, 0.45);
+  
+  --status-open: #10B981;
+  --status-open-bg: rgba(16, 185, 129, 0.15);
+  --status-risk: #F59E0B;
+  --status-risk-bg: rgba(245, 158, 11, 0.15);
+  --status-blocked: #EF4444;
+  --status-blocked-bg: rgba(239, 68, 68, 0.15);
+  --status-glof: #E879F9;
+  --status-glof-bg: rgba(232, 121, 249, 0.22);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  overflow-x: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bg-surface-3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-accent);
+}
+
+/* Pill UI Elements */
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid transparent;
+  outline: none;
+}
+
+.pill-btn-primary {
+  background: var(--primary-accent);
+  color: #1A171A;
+  box-shadow: 0 4px 16px var(--primary-glow);
+}
+.pill-btn-primary:hover {
+  background: #F0ABFC;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 121, 249, 0.45);
+}
+
+.pill-btn-secondary {
+  background: rgba(232, 121, 249, 0.12);
+  color: var(--primary-accent);
+  border-color: rgba(232, 121, 249, 0.28);
+}
+.pill-btn-secondary:hover {
+  background: rgba(232, 121, 249, 0.22);
+  border-color: var(--primary-accent);
+  transform: translateY(-1px);
+}
+
+.pill-btn-danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #EF4444;
+  border-color: rgba(239, 68, 68, 0.35);
+}
+.pill-btn-danger:hover {
+  background: #EF4444;
+  color: #FFFFFF;
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.status-pill.OPEN {
+  background: var(--status-open-bg);
+  color: var(--status-open);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.AT_RISK {
+  background: var(--status-risk-bg);
+  color: var(--status-risk);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-pill.BLOCKED {
+  background: var(--status-blocked-bg);
+  color: var(--status-blocked);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.status-pill.GLOF_ALERT, .status-pill.CRITICAL_ALERT {
+  background: var(--status-glof-bg);
+  color: var(--status-glof);
+  border: 1px solid rgba(232, 121, 249, 0.5);
+  animation: glofPulse 2s infinite ease-in-out;
+}
+
+@keyframes glofPulse {
+  0% { box-shadow: 0 0 0 0 rgba(232, 121, 249, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(232, 121, 249, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 121, 249, 0); }
+}
+
+/* Card Styling */
+.necklink-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  padding: 20px;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(12px);
+}
+
+.necklink-card:hover {
+  border-color: var(--border-active);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* Leaflet Dark Mode Customization */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #151315 !important;
+  border-radius: 20px;
+  font-family: 'Space Grotesk', sans-serif !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.25) brightness(0.75);
+}
+
+.leaflet-popup-content-wrapper {
+  background: #231F24 !important;
+  color: #FFFFFF !important;
+  border: 1px solid rgba(232, 121, 249, 0.3) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}
+
+.leaflet-popup-tip {
+  background: #231F24 !important;
+}
+
+.leaflet-popup-content {
+  margin: 12px 16px !important;
+  font-size: 0.85rem !important;
+  line-height: 1.4 !important;
+}
