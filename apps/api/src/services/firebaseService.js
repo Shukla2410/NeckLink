@@ -4,21 +4,31 @@
  * https://neclink-prototype-default-rtdb.asia-southeast1.firebasedatabase.app
  */
 
-const DB_URL = process.env.FIREBASE_DATABASE_URL || "https://neclink-prototype-default-rtdb.asia-southeast1.firebasedatabase.app";
+const DB_URL = process.env.FIREBASE_DATABASE_URL || "";
 
 export async function pushToFirebase(path, data) {
+  if (
+    !DB_URL ||
+    !process.env.FIREBASE_DATABASE_SECRET ||
+    process.env.DISABLE_EXTERNAL_DELIVERY === "true"
+  )
+    return;
   try {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
-    const url = `${DB_URL}${cleanPath}.json`;
+    const url = `${DB_URL}${cleanPath}.json?auth=${encodeURIComponent(process.env.FIREBASE_DATABASE_SECRET)}`;
 
     const res = await fetch(url, {
       method: "PUT",
+      signal: AbortSignal.timeout(5000),
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
     });
 
     if (!res.ok) {
-      console.warn(`Firebase RTDB write warning (${res.status}):`, await res.text());
+      console.warn(
+        `Firebase RTDB write warning (${res.status}):`,
+        await res.text(),
+      );
     }
   } catch (err) {
     // Non-blocking warning so offline or network hiccups don't break Express
@@ -42,7 +52,7 @@ export async function syncEventToFirebase(eventType, payload) {
   return pushToFirebase(`/live_telemetry_event`, {
     type: eventType,
     data: payload,
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   });
 }
 
@@ -52,13 +62,13 @@ export async function checkFirebaseConnection() {
     return {
       connected: res.ok,
       database_url: DB_URL,
-      status: res.status
+      status: res.status,
     };
   } catch (err) {
     return {
       connected: false,
       database_url: DB_URL,
-      error: err.message
+      error: err.message,
     };
   }
 }

@@ -1,5 +1,7 @@
 # NECKLINK — AI Logistics & Accessibility Intelligence Platform for India's North Eastern Region (NER)
 
+> **Current build:** start with [SETUP.md](SETUP.md) for the driver workspace, dispatch desk, named accounts, offline reports, verified-data import and integration setup. The original prototype overview below is retained as project history; its live-data and model claims are superseded by the explicit source labels and limitations in SETUP.md. No production prediction or delivery claim should be inferred from a simulator.
+
 **Problem Statement:** SIH26002 — AI-Based Smart Logistics and Accessibility Intelligence Platform for the North Eastern Region  
 **Sponsor:** Ministry of Development of North Eastern Region (MDoNER)  
 **Theme:** Transportation & Logistics · Disaster Resilience · Cryosphere Intelligence  

@@ -4,6 +4,7 @@
  * auto-syncing when connectivity is restored.
  */
 
+import { apiFetch, API_BASE } from "./api.js";
 const DB_NAME = "necklink_offline_db";
 const STORE_NAME = "incident_queue";
 const DB_VERSION = 1;
@@ -30,11 +31,21 @@ export async function queueOfflineIncident(incident) {
     const item = {
       ...incident,
       queued_at: new Date().toISOString(),
-      sync_status: "QUEUED_OFFLINE"
+      sync_status: "QUEUED_OFFLINE",
     };
     const req = store.put(item);
-    req.onsuccess = () => resolve(item);
-    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => {
+      db.close();
+      resolve(item);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+    tx.onabort = () => {
+      db.close();
+      reject(tx.error || new Error("Local storage failed"));
+    };
   });
 }
 
@@ -44,7 +55,10 @@ export async function getQueuedIncidents() {
     const tx = db.transaction(STORE_NAME, "readonly");
     const store = tx.objectStore(STORE_NAME);
     const req = store.getAll();
-    req.onsuccess = () => resolve(req.result || []);
+    req.onsuccess = () => {
+      db.close();
+      resolve(req.result || []);
+    };
     req.onerror = () => reject(req.error);
   });
 }
@@ -55,12 +69,26 @@ export async function removeQueuedIncident(id) {
     const tx = db.transaction(STORE_NAME, "readwrite");
     const store = tx.objectStore(STORE_NAME);
     const req = store.delete(id);
-    req.onsuccess = () => resolve(true);
-    req.onerror = () => reject(req.error);
+    tx.oncomplete = () => {
+      db.close();
+      resolve(true);
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
   });
 }
 
-export async function syncQueuedIncidents(apiBase = "http://localhost:5000") {
+let syncing = null;
+export function syncQueuedIncidents(apiBase = API_BASE) {
+  if (!syncing)
+    syncing = flushQueue(apiBase).finally(() => {
+      syncing = null;
+    });
+  return syncing;
+}
+async function flushQueue(apiBase) {
   const queued = await getQueuedIncidents();
   if (queued.length === 0) return { synced: 0, failed: 0 };
 
@@ -69,7 +97,7 @@ export async function syncQueuedIncidents(apiBase = "http://localhost:5000") {
 
   for (const item of queued) {
     try {
-      const res = await fetch(`${apiBase}/api/incidents`, {
+      const res = await apiFetch(`${apiBase}/api/incidents`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,10 +107,13 @@ export async function syncQueuedIncidents(apiBase = "http://localhost:5000") {
           lat: item.lat,
           lng: item.lng,
           description: item.description,
+          image_ref: item.image_ref,
+          observed_at: item.observed_at,
+          accuracy_m: item.accuracy_m,
           severity: item.severity,
           source: "FIELD_OFFICER_OFFLINE_SYNC",
-          sync_status: "SYNCED"
-        })
+          sync_status: "SYNCED",
+        }),
       });
 
       if (res.ok) {
@@ -90,6 +121,11 @@ export async function syncQueuedIncidents(apiBase = "http://localhost:5000") {
         syncedCount++;
       } else {
         failedCount++;
+        const error = await res.json().catch(() => ({}));
+        await queueOfflineIncident({
+          ...item,
+          last_error: error.message || `Server error ${res.status}`,
+        });
       }
     } catch {
       failedCount++;

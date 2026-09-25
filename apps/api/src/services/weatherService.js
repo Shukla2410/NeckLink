@@ -9,16 +9,56 @@ const cache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute caching
 
 const NER_HUBS = {
-  "Gangtok": { lat: 27.33, lon: 88.60, state: "Sikkim", corridor_id: "CORR-NH10" },
-  "Guwahati": { lat: 26.15, lon: 91.75, state: "Assam", corridor_id: "CORR-NH27" },
-  "Dimapur": { lat: 25.90, lon: 93.73, state: "Nagaland", corridor_id: "CORR-NH29" },
-  "Kohima": { lat: 25.67, lon: 94.11, state: "Nagaland", corridor_id: "CORR-NH29" },
-  "Shillong": { lat: 25.58, lon: 91.89, state: "Meghalaya", corridor_id: "CORR-NH06" },
-  "Silchar": { lat: 24.82, lon: 92.80, state: "Assam", corridor_id: "CORR-NH06" },
-  "Imphal": { lat: 24.82, lon: 93.94, state: "Manipur", corridor_id: "CORR-NH102" },
-  "Itanagar": { lat: 27.08, lon: 93.61, state: "Arunachal Pradesh", corridor_id: "CORR-NH415" },
-  "Pasighat": { lat: 28.07, lon: 95.33, state: "Arunachal Pradesh", corridor_id: "CORR-NH15" },
-  "Agartala": { lat: 23.83, lon: 91.28, state: "Tripura", corridor_id: "CORR-NH208" }
+  Gangtok: { lat: 27.33, lon: 88.6, state: "Sikkim", corridor_id: "CORR-NH10" },
+  Guwahati: {
+    lat: 26.15,
+    lon: 91.75,
+    state: "Assam",
+    corridor_id: "CORR-NH27",
+  },
+  Dimapur: {
+    lat: 25.9,
+    lon: 93.73,
+    state: "Nagaland",
+    corridor_id: "CORR-NH29",
+  },
+  Kohima: {
+    lat: 25.67,
+    lon: 94.11,
+    state: "Nagaland",
+    corridor_id: "CORR-NH29",
+  },
+  Shillong: {
+    lat: 25.58,
+    lon: 91.89,
+    state: "Meghalaya",
+    corridor_id: "CORR-NH06",
+  },
+  Silchar: { lat: 24.82, lon: 92.8, state: "Assam", corridor_id: "CORR-NH06" },
+  Imphal: {
+    lat: 24.82,
+    lon: 93.94,
+    state: "Manipur",
+    corridor_id: "CORR-NH102",
+  },
+  Itanagar: {
+    lat: 27.08,
+    lon: 93.61,
+    state: "Arunachal Pradesh",
+    corridor_id: "CORR-NH415",
+  },
+  Pasighat: {
+    lat: 28.07,
+    lon: 95.33,
+    state: "Arunachal Pradesh",
+    corridor_id: "CORR-NH15",
+  },
+  Agartala: {
+    lat: 23.83,
+    lon: 91.28,
+    state: "Tripura",
+    corridor_id: "CORR-NH208",
+  },
 };
 
 export async function fetchWeatherForLocation(lat, lon, hubName = "NER Node") {
@@ -34,7 +74,9 @@ export async function fetchWeatherForLocation(lat, lon, hubName = "NER Node") {
 
   try {
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-    const res = await fetch(url);
+    if (!API_KEY || API_KEY.startsWith("YOUR_"))
+      throw new Error("OpenWeather credentials not configured");
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (!res.ok) {
       throw new Error(`OpenWeather API responded with status ${res.status}`);
     }
@@ -51,9 +93,12 @@ export async function fetchWeatherForLocation(lat, lon, hubName = "NER Node") {
       wind_speed_kmh: Number(((raw.wind?.speed ?? 2.0) * 3.6).toFixed(1)),
       condition: raw.weather?.[0]?.main ?? "Clear",
       description: raw.weather?.[0]?.description ?? "clear skies",
-      rain_1h_mm: raw.rain?.["1h"] ?? (raw.weather?.[0]?.main === "Rain" ? 1.5 : 0.0),
-      is_precipitation_active: (raw.weather?.[0]?.main === "Rain" || raw.weather?.[0]?.main === "Thunderstorm"),
-      fetched_at: new Date().toISOString()
+      rain_1h_mm:
+        raw.rain?.["1h"] ?? (raw.weather?.[0]?.main === "Rain" ? 1.5 : 0.0),
+      is_precipitation_active:
+        raw.weather?.[0]?.main === "Rain" ||
+        raw.weather?.[0]?.main === "Thunderstorm",
+      fetched_at: new Date().toISOString(),
     };
 
     cache.set(cacheKey, { timestamp: now, data });
@@ -64,25 +109,25 @@ export async function fetchWeatherForLocation(lat, lon, hubName = "NER Node") {
       hub_name: hubName,
       lat,
       lon,
-      temp_c: 21.5,
-      humidity_pct: 82,
-      condition: "Rain",
-      description: "light rain (telemetric fallback)",
-      rain_1h_mm: 2.4,
-      is_precipitation_active: true,
+      temp_c: null,
+      humidity_pct: null,
+      condition: "Unavailable",
+      description: "Weather feed unavailable",
+      rain_1h_mm: null,
+      is_precipitation_active: false,
       fetched_at: new Date().toISOString(),
-      fallback: true
+      fallback: true,
     };
   }
 }
 
 export async function getAllNerHubsWeather() {
   const promises = Object.entries(NER_HUBS).map(([name, info]) =>
-    fetchWeatherForLocation(info.lat, info.lon, name).then(data => ({
+    fetchWeatherForLocation(info.lat, info.lon, name).then((data) => ({
       ...data,
       state: info.state,
-      corridor_id: info.corridor_id
-    }))
+      corridor_id: info.corridor_id,
+    })),
   );
 
   return await Promise.all(promises);

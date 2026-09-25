@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from "react";
-import { 
-  MapContainer, 
-  TileLayer, 
-  Polyline, 
-  Polygon, 
-  Marker, 
-  Popup, 
-  useMap 
+import {
+  MapContainer,
+  TileLayer,
+  Polyline,
+  Polygon,
+  Marker,
+  Popup,
+  useMap,
 } from "react-leaflet";
 import L from "leaflet";
 
@@ -40,7 +40,7 @@ const createDivIcon = (color, pulseColor, label = "") => {
       </div>
     `,
     iconSize: [24, 24],
-    iconAnchor: [12, 12]
+    iconAnchor: [12, 12],
   });
 };
 
@@ -68,36 +68,45 @@ export default function InteractiveMap({
   incidents = [],
   activeRoute = null,
   selectedCorridor = null,
-  onSelectCorridor
+  onSelectCorridor,
 }) {
   const mapCenter = [26.4, 92.5];
   const zoomLevel = 7;
 
   // Compute selected focus coordinate
   let focusCoords = null;
-  if (selectedCorridor && selectedCorridor.coordinates && selectedCorridor.coordinates.length > 0) {
+  if (
+    selectedCorridor &&
+    selectedCorridor.coordinates &&
+    selectedCorridor.coordinates.length > 0
+  ) {
     const midIdx = Math.floor(selectedCorridor.coordinates.length / 2);
     // coordinates are [lng, lat]
-    focusCoords = [selectedCorridor.coordinates[midIdx][1], selectedCorridor.coordinates[midIdx][0]];
+    focusCoords = [
+      selectedCorridor.coordinates[midIdx][1],
+      selectedCorridor.coordinates[midIdx][0],
+    ];
   }
 
   const getCorridorColor = (road) => {
     if (road.status === "GLOF_ALERT") return "#E879F9";
-    if (road.status === "BLOCKED" || road.risk_score >= 0.80) return "#EF4444";
+    if (road.status === "BLOCKED" || road.risk_score >= 0.8) return "#EF4444";
     if (road.status === "AT_RISK" || road.risk_score >= 0.45) return "#F59E0B";
     return "#10B981";
   };
 
   return (
-    <div style={{
-      width: "100%",
-      height: "100%",
-      borderRadius: "20px",
-      overflow: "hidden",
-      position: "relative",
-      border: "1px solid var(--border-subtle)",
-      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)"
-    }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        borderRadius: "20px",
+        overflow: "hidden",
+        position: "relative",
+        border: "1px solid var(--border-subtle)",
+        boxShadow: "0 10px 30px rgba(0, 0, 0, 0.4)",
+      }}
+    >
       <MapContainer
         center={mapCenter}
         zoom={zoomLevel}
@@ -117,7 +126,7 @@ export default function InteractiveMap({
         {riskZones.map((z) => {
           if (!z.polygon_coordinates) return null;
           // Coordinates in DB are [lng, lat], Leaflet expects [lat, lng]
-          const latLngs = z.polygon_coordinates.map(pt => [pt[1], pt[0]]);
+          const latLngs = z.polygon_coordinates.map((pt) => [pt[1], pt[0]]);
           const isGlof = z.type === "GLOF_PATH" || z.severity === "CRITICAL";
           return (
             <Polygon
@@ -128,17 +137,28 @@ export default function InteractiveMap({
                 fillColor: isGlof ? "#E879F9" : "#F59E0B",
                 fillOpacity: isGlof ? 0.25 : 0.15,
                 weight: 2,
-                dashArray: "4 6"
+                dashArray: "4 6",
               }}
             >
               <Popup>
                 <div style={{ minWidth: "180px" }}>
-                  <div style={{ color: "var(--primary-accent)", fontWeight: 700, fontSize: "0.85rem", marginBottom: "4px" }}>
+                  <div
+                    style={{
+                      color: "var(--primary-accent)",
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      marginBottom: "4px",
+                    }}
+                  >
                     ⚠️ {z.name}
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    Type: <b>{z.type}</b><br/>
-                    Severity: <b>{z.severity}</b><br/>
+                  <div
+                    style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}
+                  >
+                    Type: <b>{z.type}</b>
+                    <br />
+                    Severity: <b>{z.severity}</b>
+                    <br />
                     Source: <i>{z.source}</i>
                   </div>
                 </div>
@@ -150,7 +170,7 @@ export default function InteractiveMap({
         {/* 2. Corridors (GeoJSON Polylines) */}
         {roads.map((road) => {
           if (!road.coordinates || road.coordinates.length < 2) return null;
-          const latLngs = road.coordinates.map(pt => [pt[1], pt[0]]);
+          const latLngs = road.coordinates.map((pt) => [pt[1], pt[0]]);
           const color = getCorridorColor(road);
           const isSelected = selectedCorridor?.id === road.id;
           const isGlof = road.status === "GLOF_ALERT";
@@ -160,42 +180,71 @@ export default function InteractiveMap({
               key={road.id}
               positions={latLngs}
               eventHandlers={{
-                click: () => onSelectCorridor?.(road)
+                click: () => onSelectCorridor?.(road),
               }}
               pathOptions={{
                 color: isSelected ? "#FFFFFF" : color,
-                weight: isSelected ? 7 : (isGlof ? 6 : 4),
-                opacity: isSelected ? 1.0 : (isGlof ? 0.95 : 0.8),
+                weight: isSelected ? 7 : isGlof ? 6 : 4,
+                opacity: isSelected ? 1.0 : isGlof ? 0.95 : 0.8,
                 lineCap: "round",
-                lineJoin: "round"
+                lineJoin: "round",
               }}
             >
               <Popup>
                 <div style={{ minWidth: "220px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "#FFFFFF" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: "0.9rem",
+                        color: "#FFFFFF",
+                      }}
+                    >
                       {road.code}
                     </span>
                     <span className={`status-pill ${road.status}`}>
                       {road.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-muted)", marginBottom: "8px" }}>
+                  <div
+                    style={{
+                      fontSize: "0.8rem",
+                      color: "var(--text-muted)",
+                      marginBottom: "8px",
+                    }}
+                  >
                     {road.name}
                   </div>
-                  <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "6px",
-                    background: "var(--bg-surface-2)",
-                    padding: "8px 10px",
-                    borderRadius: "10px",
-                    fontSize: "0.75rem"
-                  }}>
-                    <div>Risk Score: <b>{Math.round(road.risk_score * 100)}%</b></div>
-                    <div>Distance: <b>{road.distance_km} km</b></div>
-                    <div>Speed: <b>{road.current_speed} km/h</b></div>
-                    <div>Rainfall: <b>{road.rainfall_mm} mm</b></div>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "6px",
+                      background: "var(--bg-surface-2)",
+                      padding: "8px 10px",
+                      borderRadius: "10px",
+                      fontSize: "0.75rem",
+                    }}
+                  >
+                    <div>
+                      Risk Score: <b>{Math.round(road.risk_score * 100)}%</b>
+                    </div>
+                    <div>
+                      Distance: <b>{road.distance_km} km</b>
+                    </div>
+                    <div>
+                      Speed: <b>{road.current_speed} km/h</b>
+                    </div>
+                    <div>
+                      Rainfall: <b>{road.rainfall_mm} mm</b>
+                    </div>
                   </div>
                 </div>
               </Popup>
@@ -211,29 +260,58 @@ export default function InteractiveMap({
               color: "#E879F9",
               weight: 6,
               opacity: 0.9,
-              dashArray: "1 8"
+              dashArray: "1 8",
             }}
           />
         )}
 
         {/* 4. Glacial Lakes Markers */}
         {glacialLakes.map((lake) => (
-          <Marker
-            key={lake.id}
-            position={[lake.lat, lake.lng]}
-            icon={lakeIcon}
-          >
+          <Marker key={lake.id} position={[lake.lat, lake.lng]} icon={lakeIcon}>
             <Popup>
               <div style={{ minWidth: "200px" }}>
-                <div style={{ color: "#E879F9", fontWeight: 700, fontSize: "0.9rem", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    color: "#E879F9",
+                    fontWeight: 700,
+                    fontSize: "0.9rem",
+                    marginBottom: "4px",
+                  }}
+                >
                   🏔️ {lake.name}
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                  Elevation: <b>{lake.elevation_m}m</b> · Area: <b>{lake.area_sq_km} km²</b><br/>
-                  Growth: <b>+{lake.growth_rate_pct}%</b> · Stability: <b>{lake.moraine_stability}</b><br/>
-                  Status: <b style={{ color: lake.monitoring_status === "CRITICAL_ALERT" ? "#E879F9" : "#F59E0B" }}>{lake.monitoring_status}</b>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    marginBottom: "6px",
+                  }}
+                >
+                  Elevation: <b>{lake.elevation_m}m</b> · Area:{" "}
+                  <b>{lake.area_sq_km} km²</b>
+                  <br />
+                  Growth: <b>+{lake.growth_rate_pct}%</b> · Stability:{" "}
+                  <b>{lake.moraine_stability}</b>
+                  <br />
+                  Status:{" "}
+                  <b
+                    style={{
+                      color:
+                        lake.monitoring_status === "CRITICAL_ALERT"
+                          ? "#E879F9"
+                          : "#F59E0B",
+                    }}
+                  >
+                    {lake.monitoring_status}
+                  </b>
                 </div>
-                <div style={{ fontSize: "0.72rem", color: "var(--text-sub)", fontStyle: "italic" }}>
+                <div
+                  style={{
+                    fontSize: "0.72rem",
+                    color: "var(--text-sub)",
+                    fontStyle: "italic",
+                  }}
+                >
                   {lake.description}
                 </div>
               </div>
@@ -252,18 +330,40 @@ export default function InteractiveMap({
             >
               <Popup>
                 <div style={{ minWidth: "200px" }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                    <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#FFFFFF" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: 700,
+                        fontSize: "0.88rem",
+                        color: "#FFFFFF",
+                      }}
+                    >
                       🚛 {v.id}
                     </span>
                     <span className={`status-pill ${v.status}`}>
                       {v.status}
                     </span>
                   </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
-                    Operator: <b>{v.operator}</b><br/>
-                    Plate: <b>{v.plate_number}</b><br/>
-                    Cargo: <i>{v.cargo_summary}</i><br/>
+                  <div
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "var(--text-muted)",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Operator: <b>{v.operator}</b>
+                    <br />
+                    Plate: <b>{v.plate_number}</b>
+                    <br />
+                    Cargo: <i>{v.cargo_summary}</i>
+                    <br />
                     Speed: <b>{v.current_speed} km/h</b>
                   </div>
                 </div>
@@ -281,10 +381,23 @@ export default function InteractiveMap({
           >
             <Popup>
               <div style={{ minWidth: "200px" }}>
-                <div style={{ color: "#EF4444", fontWeight: 700, fontSize: "0.85rem", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    color: "#EF4444",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    marginBottom: "4px",
+                  }}
+                >
                   ⚠️ {inc.type} ({inc.severity})
                 </div>
-                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "4px" }}>
+                <div
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "var(--text-muted)",
+                    marginBottom: "4px",
+                  }}
+                >
                   {inc.description}
                 </div>
                 <div style={{ fontSize: "0.7rem", color: "var(--text-sub)" }}>
@@ -297,37 +410,67 @@ export default function InteractiveMap({
       </MapContainer>
 
       {/* Floating Legend Pill */}
-      <div style={{
-        position: "absolute",
-        bottom: "16px",
-        left: "16px",
-        background: "rgba(35, 31, 36, 0.92)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "9999px",
-        padding: "8px 18px",
-        display: "flex",
-        alignItems: "center",
-        gap: "16px",
-        zIndex: 800,
-        fontSize: "0.75rem",
-        color: "var(--text-muted)",
-        boxShadow: "0 6px 20px rgba(0,0,0,0.5)"
-      }}>
+      <div
+        style={{
+          position: "absolute",
+          bottom: "16px",
+          left: "16px",
+          background: "rgba(35, 31, 36, 0.92)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: "9999px",
+          padding: "8px 18px",
+          display: "flex",
+          alignItems: "center",
+          gap: "16px",
+          zIndex: 800,
+          fontSize: "0.75rem",
+          color: "var(--text-muted)",
+          boxShadow: "0 6px 20px rgba(0,0,0,0.5)",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ width: "10px", height: "4px", backgroundColor: "#10B981", borderRadius: "2px" }}></span>
+          <span
+            style={{
+              width: "10px",
+              height: "4px",
+              backgroundColor: "#10B981",
+              borderRadius: "2px",
+            }}
+          ></span>
           <span>Open</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ width: "10px", height: "4px", backgroundColor: "#F59E0B", borderRadius: "2px" }}></span>
+          <span
+            style={{
+              width: "10px",
+              height: "4px",
+              backgroundColor: "#F59E0B",
+              borderRadius: "2px",
+            }}
+          ></span>
           <span>At Risk</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ width: "10px", height: "4px", backgroundColor: "#EF4444", borderRadius: "2px" }}></span>
+          <span
+            style={{
+              width: "10px",
+              height: "4px",
+              backgroundColor: "#EF4444",
+              borderRadius: "2px",
+            }}
+          ></span>
           <span>Blocked</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <span style={{ width: "10px", height: "4px", backgroundColor: "#E879F9", borderRadius: "2px" }}></span>
+          <span
+            style={{
+              width: "10px",
+              height: "4px",
+              backgroundColor: "#E879F9",
+              borderRadius: "2px",
+            }}
+          ></span>
           <span>GLOF / Critical</span>
         </div>
       </div>

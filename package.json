@@ -4,9 +4,12 @@
   "private": true,
   "description": "AI-based smart logistics and accessibility intelligence platform for India's North Eastern Region",
   "scripts": {
+    "migrate": "npm --prefix apps/api run migrate",
+    "seed:operations": "npm --prefix apps/api run seed:operations",
+    "test:unit": "node --test apps/api/test/unit.test.js",
     "seed": "npm --prefix apps/api run seed",
     "test:api": "npm --prefix apps/api test",
-    "test:ml": "python -m pytest apps/ml-service/test_ml_service.py -v",
+    "test:ml": "apps/ml-service/.venv/bin/python -m pytest apps/ml-service/test_ml_service.py -v",
     "test": "npm run test:ml && npm run test:api",
     "build:web": "npm --prefix apps/web run build",
     "dev:api": "npm --prefix apps/api run dev",

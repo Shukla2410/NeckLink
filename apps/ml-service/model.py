@@ -29,8 +29,8 @@ class RiskPredictor:
         ]
         self._train_initial_model()
 
-    def _generate_synthetic_data(self, n_samples=600):
-        np.random.seed(42)
+    def _generate_synthetic_data(self, n_samples=600, seed=42):
+        np.random.seed(seed)
         rainfall = np.random.exponential(scale=35.0, size=n_samples).clip(0, 220)
         rainfall_trend = np.random.choice([0, 1, 2], size=n_samples, p=[0.25, 0.45, 0.30])
         slope = np.random.normal(loc=18.0, scale=8.0, size=n_samples).clip(2, 48)
@@ -114,6 +114,10 @@ class RiskPredictor:
             explanation.append("Normal operational parameters within safe envelope")
 
         return {
+            "source": "SYNTHETIC_RANDOM_FOREST",
+            "model_version": "ner-synthetic-v1",
+            "calibrated_probability": False,
+            "prediction_horizon_hours": 24,
             "risk_score": pred_score,
             "risk_level": level,
             "badge_color": color,

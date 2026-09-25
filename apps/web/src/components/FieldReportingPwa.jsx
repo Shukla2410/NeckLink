@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Wifi, 
-  WifiOff, 
-  Send, 
-  Database, 
-  CheckCircle2, 
-  AlertTriangle, 
-  MapPin, 
-  Camera, 
-  RefreshCw 
+import ReportForm from "./ReportForm";
+import {
+  Wifi,
+  WifiOff,
+  Send,
+  Database,
+  CheckCircle2,
+  AlertTriangle,
+  MapPin,
+  Camera,
+  RefreshCw,
 } from "lucide-react";
-import { queueOfflineIncident, getQueuedIncidents, syncQueuedIncidents } from "../utils/offlineQueue.js";
+import {
+  queueOfflineIncident,
+  getQueuedIncidents,
+  syncQueuedIncidents,
+} from "../utils/offlineQueue.js";
 
-export default function FieldReportingPwa({
+export default function FieldReportingPwa(props) {
+  return (
+    <div style={{ height: "100%", overflowY: "auto" }}>
+      <ReportForm {...props} />
+    </div>
+  );
+}
+export function LegacyFieldReportingPwa({
   corridors = [],
   apiBase = "http://localhost:5000",
-  onSyncComplete
+  onSyncComplete,
 }) {
   const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
   const [queuedItems, setQueuedItems] = useState([]);
@@ -28,7 +40,8 @@ export default function FieldReportingPwa({
     lat: "25.75",
     lng: "93.82",
     severity: "HIGH",
-    description: "Slope mud displacement across 60m of roadway. Vehicle passage blocked."
+    description:
+      "Slope mud displacement across 60m of roadway. Vehicle passage blocked.",
   });
 
   const loadQueue = async () => {
@@ -59,7 +72,7 @@ export default function FieldReportingPwa({
       ...formData,
       lat: parseFloat(formData.lat),
       lng: parseFloat(formData.lng),
-      source: "FIELD_OFFICER_OFFLINE_SYNC"
+      source: "FIELD_OFFICER_OFFLINE_SYNC",
     };
 
     if (isSimulatedOffline) {
@@ -74,7 +87,7 @@ export default function FieldReportingPwa({
         const res = await fetch(`${apiBase}/api/incidents`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(incidentData)
+          body: JSON.stringify(incidentData),
         });
         if (res.ok) {
           setSyncSuccessMsg("Report uploaded directly to Central Command");
@@ -95,7 +108,9 @@ export default function FieldReportingPwa({
       const res = await syncQueuedIncidents(apiBase);
       await loadQueue();
       if (res.synced > 0) {
-        setSyncSuccessMsg(`Synchronized ${res.synced} offline incident(s) to central command!`);
+        setSyncSuccessMsg(
+          `Synchronized ${res.synced} offline incident(s) to central command!`,
+        );
         setTimeout(() => setSyncSuccessMsg(""), 5000);
         onSyncComplete?.();
       }
@@ -107,25 +122,34 @@ export default function FieldReportingPwa({
   };
 
   return (
-    <div style={{
-      maxWidth: "680px",
-      margin: "0 auto",
-      display: "flex",
-      flexDirection: "column",
-      gap: "20px",
-      height: "100%",
-      overflowY: "auto",
-      paddingRight: "8px"
-    }}>
-      {/* Offline/Online Network Simulator Bar */}
-      <div className="necklink-card" style={{
-        background: isSimulatedOffline ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
-        border: isSimulatedOffline ? "1px solid rgba(239, 68, 68, 0.4)" : "1px solid rgba(16, 185, 129, 0.4)",
+    <div
+      style={{
+        maxWidth: "680px",
+        margin: "0 auto",
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "16px 20px"
-      }}>
+        flexDirection: "column",
+        gap: "20px",
+        height: "100%",
+        overflowY: "auto",
+        paddingRight: "8px",
+      }}
+    >
+      {/* Offline/Online Network Simulator Bar */}
+      <div
+        className="necklink-card"
+        style={{
+          background: isSimulatedOffline
+            ? "rgba(239, 68, 68, 0.12)"
+            : "rgba(16, 185, 129, 0.12)",
+          border: isSimulatedOffline
+            ? "1px solid rgba(239, 68, 68, 0.4)"
+            : "1px solid rgba(16, 185, 129, 0.4)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "16px 20px",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {isSimulatedOffline ? (
             <WifiOff size={22} color="#EF4444" />
@@ -133,11 +157,17 @@ export default function FieldReportingPwa({
             <Wifi size={22} color="#10B981" />
           )}
           <div>
-            <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#FFFFFF" }}>
-              {isSimulatedOffline ? "OFFLINE MODE ACTIVE (Zero Connectivity Simulation)" : "ONLINE MODE (Connected to Central Command)"}
+            <div
+              style={{ fontWeight: 700, fontSize: "0.95rem", color: "#FFFFFF" }}
+            >
+              {isSimulatedOffline
+                ? "OFFLINE MODE ACTIVE (Zero Connectivity Simulation)"
+                : "ONLINE MODE (Connected to Central Command)"}
             </div>
             <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>
-              {isSimulatedOffline ? "Reports will buffer into local browser IndexedDB" : "Live synchronization active via Express / Postgres"}
+              {isSimulatedOffline
+                ? "Reports will buffer into local browser IndexedDB"
+                : "Live synchronization active via Express / Postgres"}
             </div>
           </div>
         </div>
@@ -153,18 +183,22 @@ export default function FieldReportingPwa({
 
       {/* Queued Items Indicator */}
       {queuedItems.length > 0 && (
-        <div style={{
-          background: "var(--bg-surface-2)",
-          border: "1px solid var(--primary-accent)",
-          borderRadius: "16px",
-          padding: "14px 18px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
-        }}>
+        <div
+          style={{
+            background: "var(--bg-surface-2)",
+            border: "1px solid var(--primary-accent)",
+            borderRadius: "16px",
+            padding: "14px 18px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Database size={18} color="var(--primary-accent)" />
-            <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#FFFFFF" }}>
+            <span
+              style={{ fontSize: "0.85rem", fontWeight: 600, color: "#FFFFFF" }}
+            >
               {queuedItems.length} report(s) waiting in IndexedDB queue
             </span>
           </div>
@@ -182,56 +216,82 @@ export default function FieldReportingPwa({
       )}
 
       {syncSuccessMsg && (
-        <div style={{
-          background: "rgba(16, 185, 129, 0.15)",
-          border: "1px solid #10B981",
-          color: "#10B981",
-          borderRadius: "14px",
-          padding: "12px 16px",
-          fontSize: "0.85rem",
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: "8px"
-        }}>
+        <div
+          style={{
+            background: "rgba(16, 185, 129, 0.15)",
+            border: "1px solid #10B981",
+            color: "#10B981",
+            borderRadius: "14px",
+            padding: "12px 16px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+          }}
+        >
           <CheckCircle2 size={16} />
           <span>{syncSuccessMsg}</span>
         </div>
       )}
 
       {/* Incident Form Card */}
-      <form onSubmit={handleSubmit} className="necklink-card" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      <form
+        onSubmit={handleSubmit}
+        className="necklink-card"
+        style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{
-            width: "36px",
-            height: "36px",
-            borderRadius: "10px",
-            background: "rgba(232, 121, 249, 0.16)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center"
-          }}>
+          <div
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "10px",
+              background: "rgba(232, 121, 249, 0.16)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <AlertTriangle size={18} color="var(--primary-accent)" />
           </div>
           <div>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, color: "#FFFFFF" }}>
+            <h3
+              style={{ fontSize: "1.1rem", fontWeight: 700, color: "#FFFFFF" }}
+            >
               Field Incident Emergency Dispatch Form
             </h3>
             <p style={{ fontSize: "0.76rem", color: "var(--text-sub)" }}>
-              Optimized for mobile responders in remote hilly terrain with intermittent signal
+              Optimized for mobile responders in remote hilly terrain with
+              intermittent signal
             </p>
           </div>
         </div>
 
         {/* Incident Type & Corridor */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "14px",
+          }}
+        >
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                marginBottom: "6px",
+              }}
+            >
               Hazard Category
             </label>
             <select
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, type: e.target.value })
+              }
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -240,24 +300,35 @@ export default function FieldReportingPwa({
                 border: "1px solid var(--border-subtle)",
                 color: "#FFFFFF",
                 fontSize: "0.85rem",
-                outline: "none"
+                outline: "none",
               }}
             >
               <option value="LANDSLIDE">Landslide / Debris Slope</option>
               <option value="FLASH_FLOOD">Flash Flood Inundation</option>
               <option value="ROAD_EROSION">Embankment / Road Erosion</option>
-              <option value="BRIDGE_DAMAGE">Bridge / Culvert Structural Damage</option>
+              <option value="BRIDGE_DAMAGE">
+                Bridge / Culvert Structural Damage
+              </option>
               <option value="GLOF_SURGE">GLOF Outburst Surge Wave</option>
             </select>
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                marginBottom: "6px",
+              }}
+            >
               Affected Strategic Corridor
             </label>
             <select
               value={formData.corridor_id}
-              onChange={(e) => setFormData({ ...formData, corridor_id: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, corridor_id: e.target.value })
+              }
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -266,7 +337,7 @@ export default function FieldReportingPwa({
                 border: "1px solid var(--border-subtle)",
                 color: "#FFFFFF",
                 fontSize: "0.85rem",
-                outline: "none"
+                outline: "none",
               }}
             >
               {corridors.map((c) => (
@@ -279,15 +350,30 @@ export default function FieldReportingPwa({
         </div>
 
         {/* GPS Coordinates */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "14px",
+          }}
+        >
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                marginBottom: "6px",
+              }}
+            >
               Latitude (°N)
             </label>
             <input
               type="text"
               value={formData.lat}
-              onChange={(e) => setFormData({ ...formData, lat: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, lat: e.target.value })
+              }
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -296,19 +382,28 @@ export default function FieldReportingPwa({
                 border: "1px solid var(--border-subtle)",
                 color: "#FFFFFF",
                 fontSize: "0.85rem",
-                outline: "none"
+                outline: "none",
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.75rem",
+                color: "var(--text-muted)",
+                marginBottom: "6px",
+              }}
+            >
               Longitude (°E)
             </label>
             <input
               type="text"
               value={formData.lng}
-              onChange={(e) => setFormData({ ...formData, lng: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, lng: e.target.value })
+              }
               style={{
                 width: "100%",
                 padding: "10px 14px",
@@ -317,7 +412,7 @@ export default function FieldReportingPwa({
                 border: "1px solid var(--border-subtle)",
                 color: "#FFFFFF",
                 fontSize: "0.85rem",
-                outline: "none"
+                outline: "none",
               }}
             />
           </div>
@@ -325,7 +420,14 @@ export default function FieldReportingPwa({
 
         {/* Severity */}
         <div>
-          <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.75rem",
+              color: "var(--text-muted)",
+              marginBottom: "6px",
+            }}
+          >
             Severity Level
           </label>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -338,12 +440,21 @@ export default function FieldReportingPwa({
                   flex: 1,
                   padding: "10px",
                   borderRadius: "12px",
-                  border: formData.severity === s ? "1px solid var(--primary-accent)" : "1px solid var(--border-subtle)",
-                  background: formData.severity === s ? "rgba(232, 121, 249, 0.2)" : "var(--bg-surface-2)",
-                  color: formData.severity === s ? "var(--primary-accent)" : "var(--text-muted)",
+                  border:
+                    formData.severity === s
+                      ? "1px solid var(--primary-accent)"
+                      : "1px solid var(--border-subtle)",
+                  background:
+                    formData.severity === s
+                      ? "rgba(232, 121, 249, 0.2)"
+                      : "var(--bg-surface-2)",
+                  color:
+                    formData.severity === s
+                      ? "var(--primary-accent)"
+                      : "var(--text-muted)",
                   fontSize: "0.8rem",
                   fontWeight: 600,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               >
                 {s}
@@ -354,13 +465,22 @@ export default function FieldReportingPwa({
 
         {/* Description */}
         <div>
-          <label style={{ display: "block", fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "6px" }}>
+          <label
+            style={{
+              display: "block",
+              fontSize: "0.75rem",
+              color: "var(--text-muted)",
+              marginBottom: "6px",
+            }}
+          >
             Field Observation Notes
           </label>
           <textarea
             rows={3}
             value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            onChange={(e) =>
+              setFormData({ ...formData, description: e.target.value })
+            }
             style={{
               width: "100%",
               padding: "12px 14px",
@@ -370,7 +490,7 @@ export default function FieldReportingPwa({
               color: "#FFFFFF",
               fontSize: "0.85rem",
               outline: "none",
-              resize: "none"
+              resize: "none",
             }}
           />
         </div>
@@ -382,7 +502,11 @@ export default function FieldReportingPwa({
           style={{ width: "100%", padding: "14px 20px", fontSize: "0.9rem" }}
         >
           <Send size={16} />
-          <span>{isSimulatedOffline ? "Queue Report Offline (IndexedDB)" : "Submit Live Incident Report"}</span>
+          <span>
+            {isSimulatedOffline
+              ? "Queue Report Offline (IndexedDB)"
+              : "Submit Live Incident Report"}
+          </span>
         </button>
       </form>
     </div>

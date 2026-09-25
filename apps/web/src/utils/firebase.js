@@ -8,15 +8,17 @@ const firebaseConfig = {
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || ""
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
 };
 
 let app = null;
 let db = null;
 
 try {
-  app = initializeApp(firebaseConfig);
-  db = getDatabase(app);
+  if (firebaseConfig.apiKey && firebaseConfig.databaseURL) {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+  }
 } catch (e) {
   console.warn("Firebase initialization warning:", e.message);
 }
