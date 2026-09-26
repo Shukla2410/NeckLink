@@ -240,7 +240,7 @@ export default function AlertsCenter({ alerts = [], onSendCustomAlert }) {
   );
 }
 
-function TwilioSmsDispatcher({ apiBase = "http://localhost:5000" }) {
+function TwilioSmsDispatcher({ apiBase = API_BASE }) {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [customMsg, setCustomMsg] = useState(
     "EMERGENCY DISPATCH: NH-10 Teesta Valley landslide warning. Move convoys to alternate bypass.",

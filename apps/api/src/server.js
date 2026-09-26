@@ -1,5 +1,8 @@
-import "dotenv/config";
+import dotenv from "dotenv";
 import express from "express";
+
+dotenv.config();
+dotenv.config({ path: new URL("../.env", import.meta.url) });
 import http from "http";
 import cors from "cors";
 import { pool, query } from "./db.js";
@@ -72,7 +75,7 @@ installAuth(app);
 setupRealtime(server, app);
 
 // Core health endpoints
-app.get("/api/health", (req, res) => {
+app.get(["/health", "/api/health"], (req, res) => {
   res.json({
     status: "ok",
     service: "NECKLINK Unified Intelligence API",
@@ -171,7 +174,7 @@ export function startServer(port = PORT) {
     );
     weather.unref();
   }
-  return server.listen(port, process.env.HOST || "127.0.0.1", () => {
+  return server.listen(port, process.env.HOST || "0.0.0.0", () => {
     console.log(`NECKLINK Dispatch API running on http://localhost:${port}`);
     console.log(
       `WebSocket telemetry stream active on ws://localhost:${port}/ws`,

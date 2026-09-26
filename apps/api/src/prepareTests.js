@@ -1,6 +1,7 @@
 import "dotenv/config";
 import pg from "pg";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
   throw new Error(
@@ -25,7 +26,7 @@ try {
 for (const file of ["migrate.js", "seed.js", "seedOperations.js"]) {
   const child = spawnSync(
     process.execPath,
-    [new URL(file, import.meta.url).pathname],
+    [fileURLToPath(new URL(file, import.meta.url))],
     {
       stdio: "inherit",
       env: {

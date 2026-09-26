@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { apiFetch as fetch } from "../utils/api";
+import { API_BASE, apiFetch as fetch } from "../utils/api";
 import {
   Navigation,
   Clock,
@@ -12,7 +12,7 @@ import {
 
 export default function AiRoutingPanel({
   onRouteCalculated,
-  apiBase = "http://localhost:5000",
+  apiBase = API_BASE,
 }) {
   const [origin, setOrigin] = useState("Siliguri");
   const [destination, setDestination] = useState("Gangtok");

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { apiFetch as fetch } from "../utils/api";
+import { API_BASE, apiFetch as fetch } from "../utils/api";
 import { CloudRain, Sun, Wind, Droplets, RefreshCw } from "lucide-react";
 
-export default function WeatherWidget({ apiBase = "http://localhost:5000" }) {
+export default function WeatherWidget({ apiBase = API_BASE }) {
   const [hubsWeather, setHubsWeather] = useState([]);
   const [loading, setLoading] = useState(false);
 

@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: necklink
+    runtime: node
+    plan: free
+    buildCommand: npm run render:build
+    startCommand: node apps/api/src/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: APP_MODE
+        value: demo
+      - key: TRUST_PROXY
+        value: "true"
+      - key: DISABLE_EXTERNAL_DELIVERY
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: ML_SERVICE_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: WEB_ORIGIN
+        sync: false

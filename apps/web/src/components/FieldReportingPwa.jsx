@@ -16,6 +16,7 @@ import {
   getQueuedIncidents,
   syncQueuedIncidents,
 } from "../utils/offlineQueue.js";
+import { API_BASE } from "../utils/api.js";
 
 export default function FieldReportingPwa(props) {
   return (
@@ -26,7 +27,7 @@ export default function FieldReportingPwa(props) {
 }
 export function LegacyFieldReportingPwa({
   corridors = [],
-  apiBase = "http://localhost:5000",
+  apiBase = API_BASE,
   onSyncComplete,
 }) {
   const [isSimulatedOffline, setIsSimulatedOffline] = useState(false);
