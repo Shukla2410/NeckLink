@@ -6,7 +6,7 @@
   "scripts": {
     "build": "npm --prefix apps/web run build",
     "start": "node apps/api/src/server.js",
-    "render:build": "npm --prefix apps/web ci && npm --prefix apps/web run build && npm --prefix apps/api ci --omit=dev",
+    "render:build": "npm --prefix apps/web ci --include=dev && npm --prefix apps/web run build && npm --prefix apps/api ci --omit=dev",
     "migrate": "npm --prefix apps/api run migrate",
     "seed:operations": "npm --prefix apps/api run seed:operations",
     "test:unit": "node --test apps/api/test/unit.test.js",
