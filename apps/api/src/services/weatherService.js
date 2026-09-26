@@ -72,10 +72,26 @@ export async function fetchWeatherForLocation(lat, lon, hubName = "NER Node") {
     }
   }
 
+  if (!API_KEY || API_KEY.startsWith("YOUR_")) {
+    const fallbackData = {
+      hub_name: hubName,
+      lat,
+      lon,
+      temp_c: null,
+      humidity_pct: null,
+      condition: "Unavailable",
+      description: "Weather feed unavailable",
+      rain_1h_mm: null,
+      is_precipitation_active: false,
+      fetched_at: new Date().toISOString(),
+      fallback: true,
+    };
+    cache.set(cacheKey, { timestamp: now, data: fallbackData });
+    return fallbackData;
+  }
+
   try {
     const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
-    if (!API_KEY || API_KEY.startsWith("YOUR_"))
-      throw new Error("OpenWeather credentials not configured");
     const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
     if (!res.ok) {
       throw new Error(`OpenWeather API responded with status ${res.status}`);
