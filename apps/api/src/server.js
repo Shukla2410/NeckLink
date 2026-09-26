@@ -148,9 +148,36 @@ app.use((err, req, res, next) => {
   });
 });
 
+async function initDatabaseIfNeeded() {
+  try {
+    const isCorridorTable = await query(
+      "SELECT to_regclass('public.corridor') as exists",
+    );
+    if (!isCorridorTable.rows[0]?.exists) {
+      console.log("Database schema not detected. Running migrations...");
+      const { runMigrations } = await import("./migrate.js");
+      await runMigrations();
+      console.log("Running initial seed data...");
+      const oldReset = process.env.ALLOW_DEMO_RESET;
+      process.env.ALLOW_DEMO_RESET = "true";
+      const { runSeed } = await import("./seed.js");
+      await runSeed();
+      process.env.ALLOW_DEMO_RESET = oldReset;
+      const { runSeedOperations } = await import("./seedOperations.js");
+      await runSeedOperations();
+      console.log("Database initialized successfully.");
+    }
+  } catch (err) {
+    console.warn("Database initialization notice:", err.message);
+  }
+}
+
 export function startServer(port = PORT) {
   if (!demoMode() && !process.env.ADMIN_PASSWORD)
     throw new Error("ADMIN_PASSWORD is required in production");
+  initDatabaseIfNeeded().catch((e) =>
+    console.warn("Init DB notice:", e.message),
+  );
   const notifications = setInterval(
     () =>
       dispatchPendingAlerts().catch((e) =>
