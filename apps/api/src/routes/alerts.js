@@ -10,7 +10,7 @@ router.get("/", async (req, res) => {
   try {
     const result = await query(`
       SELECT 
-        id, type, severity, corridor_id, title, message, translations, recipients, status, created_at
+        id, type, severity, corridor_id, title, message, translations, recipients, status, created_at, acknowledged_at, expires_at
       FROM alert
       ORDER BY created_at DESC
       LIMIT 100
@@ -19,7 +19,7 @@ router.get("/", async (req, res) => {
     res.json({
       status: "ok",
       count: result.rows.length,
-      alerts: result.rows
+      alerts: result.rows,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -35,20 +35,34 @@ router.post("/", async (req, res) => {
       corridor_id = null,
       title,
       message,
-      recipients = "ALL_CIVIL_AND_LOGISTICS_TEAMS"
+      recipients = "ALL_CIVIL_AND_LOGISTICS_TEAMS",
     } = req.body;
 
     if (!title || !message) {
-      return res.status(400).json({ status: "error", message: "title and message are required" });
+      return res
+        .status(400)
+        .json({ status: "error", message: "title and message are required" });
     }
 
     const alertId = `ALT-${Date.now()}`;
     const translations = await translateAlert(type, message);
 
-    await query(`
+    await query(
+      `
       INSERT INTO alert (id, type, severity, corridor_id, title, message, translations, recipients, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'DISPATCHED')
-    `, [alertId, type, severity, corridor_id, title, message, JSON.stringify(translations), recipients]);
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'CREATED')
+    `,
+      [
+        alertId,
+        type,
+        severity,
+        corridor_id,
+        title,
+        message,
+        JSON.stringify(translations),
+        recipients,
+      ],
+    );
 
     const newAlert = {
       id: alertId,
@@ -59,18 +73,14 @@ router.post("/", async (req, res) => {
       message,
       translations,
       recipients,
-      status: "DISPATCHED",
-      created_at: new Date().toISOString()
+      status: "CREATED",
+      created_at: new Date().toISOString(),
     };
 
     broadcastEvent("ALERT_CREATED", newAlert);
 
     // If critical or emergency, asynchronously attempt Twilio SMS dispatch
-    if (newAlert.severity === "CRITICAL" || newAlert.severity === "EMERGENCY") {
-      import("../services/twilioService.js")
-        .then(m => m.sendSmsAlert(process.env.TEST_ALERT_PHONE || "+17372212163", `${newAlert.title}: ${newAlert.message}`))
-        .catch(() => {});
-    }
+    // The shared outbox worker targets opted-in subscribers and records delivery.
 
     res.status(201).json({ status: "ok", alert: newAlert });
   } catch (err) {
@@ -81,9 +91,24 @@ router.post("/", async (req, res) => {
 // POST send explicit SMS to a responder or user
 router.post("/send-sms", async (req, res) => {
   try {
-    const { to, message = "NECKLINK Alert: Highway landslide warning on NH-29. Alternate route recommended." } = req.body;
+    if (
+      process.env.ENABLE_SMS_DELIVERY !== "true" ||
+      process.env.DISABLE_EXTERNAL_DELIVERY === "true"
+    )
+      return res
+        .status(503)
+        .json({
+          message:
+            "SMS delivery is disabled. Configure credentials and explicitly enable it first.",
+        });
+    const {
+      to,
+      message = "NECKLINK Alert: Highway landslide warning on NH-29. Alternate route recommended.",
+    } = req.body;
     if (!to) {
-      return res.status(400).json({ status: "error", message: "Phone number (to) is required" });
+      return res
+        .status(400)
+        .json({ status: "error", message: "Phone number (to) is required" });
     }
 
     const { sendSmsAlert } = await import("../services/twilioService.js");
@@ -91,7 +116,7 @@ router.post("/send-sms", async (req, res) => {
 
     res.json({
       status: result.success ? "ok" : "failed",
-      result
+      result,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });

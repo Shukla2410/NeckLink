@@ -10,11 +10,14 @@ import FieldReportingPwa from "./components/FieldReportingPwa";
 import AlertsCenter from "./components/AlertsCenter";
 import SimulationControlsModal from "./components/SimulationControlsModal";
 import WeatherWidget from "./components/WeatherWidget";
-import { queueOfflineIncident, syncQueuedIncidents } from "./utils/offlineQueue";
+import {
+  queueOfflineIncident,
+  syncQueuedIncidents,
+} from "./utils/offlineQueue";
 import { subscribeToFirebaseTelemetry } from "./utils/firebase";
 import { Sparkles, AlertTriangle, Bell, CheckCircle2 } from "lucide-react";
 
-const API_BASE = "http://localhost:5000";
+import { API_BASE, apiFetch as fetch } from "./utils/api";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("command");
@@ -30,7 +33,10 @@ export default function App() {
   const [stats, setStats] = useState(null);
   const [riskZones, setRiskZones] = useState([]);
 
-  const [selectedCorridor, setSelectedCorridor] = useState(null);
+  const [selectedCorridorId, setSelectedCorridorId] = useState(null);
+  const selectedCorridor =
+    roads.find((r) => r.id === selectedCorridorId) || null;
+  const setSelectedCorridor = (road) => setSelectedCorridorId(road?.id || null);
   const [activeRoute, setActiveRoute] = useState(null);
   const [lastGlofResult, setLastGlofResult] = useState(null);
   const [liveToast, setLiveToast] = useState(null);
@@ -43,14 +49,15 @@ export default function App() {
   // 1. Fetch initial operational state from API
   const fetchAllData = useCallback(async () => {
     try {
-      const [roadsRes, vehRes, alertsRes, lakesRes, incRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/roads`).then(r => r.json()),
-        fetch(`${API_BASE}/api/vehicles`).then(r => r.json()),
-        fetch(`${API_BASE}/api/alerts`).then(r => r.json()),
-        fetch(`${API_BASE}/api/glacial-lakes`).then(r => r.json()),
-        fetch(`${API_BASE}/api/incidents`).then(r => r.json()),
-        fetch(`${API_BASE}/api/stats`).then(r => r.json())
-      ]);
+      const [roadsRes, vehRes, alertsRes, lakesRes, incRes, statsRes] =
+        await Promise.all([
+          fetch(`${API_BASE}/api/roads`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/vehicles`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/alerts`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/glacial-lakes`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/incidents`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/stats`).then((r) => r.json()),
+        ]);
 
       if (roadsRes.status === "ok") setRoads(roadsRes.roads);
       if (vehRes.status === "ok") setVehicles(vehRes.vehicles);
@@ -72,9 +79,9 @@ export default function App() {
             [88.62, 26.85],
             [88.65, 27.35],
             [88.38, 27.35],
-            [88.42, 26.85]
+            [88.42, 26.85],
           ],
-          source: "SIMULATED_CRYOSPHERE_MODEL"
+          source: "SIMULATED_CRYOSPHERE_MODEL",
         },
         {
           id: "ZONE-PAGLA-PAHAR",
@@ -83,16 +90,19 @@ export default function App() {
           type: "LANDSLIDE_PRONE",
           severity: "HIGH",
           polygon_coordinates: [
-            [93.80, 25.72],
+            [93.8, 25.72],
             [94.05, 25.72],
             [94.05, 25.86],
-            [93.80, 25.86],
-            [93.80, 25.72]
+            [93.8, 25.86],
+            [93.8, 25.72],
           ],
-          source: "GEOLOGICAL_SLOPE_ANALYSIS"
-        }
+          source: "GEOLOGICAL_SLOPE_ANALYSIS",
+        },
       ];
-      setRiskZones(initialZones);
+      const zonesResponse = await fetch(
+        `${API_BASE}/api/operations/risk-zones`,
+      ).then((r) => r.json());
+      setRiskZones(zonesResponse.zones || []);
     } catch (err) {
       console.warn("Error fetching data from API:", err.message);
     }
@@ -106,7 +116,9 @@ export default function App() {
   useEffect(() => {
     let eventSource = null;
     try {
-      eventSource = new EventSource(`${API_BASE}/api/events`);
+      eventSource = new EventSource(`${API_BASE}/api/events`, {
+        withCredentials: true,
+      });
 
       eventSource.onopen = () => {
         setIsConnected(true);
@@ -149,49 +161,94 @@ export default function App() {
       setRoads((prev) =>
         prev.map((r) =>
           r.id === data.corridor_id
-            ? { ...r, status: data.status || r.status, risk_score: data.risk_score !== undefined ? data.risk_score : r.risk_score, rainfall_mm: data.rainfall_mm !== undefined ? data.rainfall_mm : r.rainfall_mm, current_speed: data.current_speed !== undefined ? data.current_speed : r.current_speed }
-            : r
-        )
+            ? {
+                ...r,
+                status: data.status || r.status,
+                risk_score:
+                  data.risk_score !== undefined
+                    ? data.risk_score
+                    : r.risk_score,
+                rainfall_mm:
+                  data.rainfall_mm !== undefined
+                    ? data.rainfall_mm
+                    : r.rainfall_mm,
+                current_speed:
+                  data.current_speed !== undefined
+                    ? data.current_speed
+                    : r.current_speed,
+              }
+            : r,
+        ),
       );
       if (data.recalculated_route) {
         setActiveRoute(data.recalculated_route);
       }
-      showToast("Corridor Status Updated", `${data.corridor_name || data.corridor_id} changed to ${data.status || "Elevated Risk"}`, "warning");
+      showToast(
+        "Corridor Status Updated",
+        `${data.corridor_name || data.corridor_id} changed to ${data.status || "Elevated Risk"}`,
+        "warning",
+      );
     }
 
     if (type === "VEHICLE_LOCATION_UPDATED") {
       setVehicles((prev) =>
         prev.map((v) =>
           v.id === data.vehicle_id
-            ? { ...v, current_lat: data.lat, current_lng: data.lng, current_speed: data.speed, status: data.status }
-            : v
-        )
+            ? {
+                ...v,
+                current_lat: data.lat,
+                current_lng: data.lng,
+                current_speed: data.speed,
+                status: data.status,
+              }
+            : v,
+        ),
       );
     }
 
     if (type === "VEHICLE_ENTERED_RISK_ZONE") {
       setVehicles((prev) =>
         prev.map((v) =>
-          v.id === data.vehicle_id ? { ...v, status: "IN_RISK_ZONE" } : v
-        )
+          v.id === data.vehicle_id ? { ...v, status: "IN_RISK_ZONE" } : v,
+        ),
       );
-      showToast("Geofence Breach Triggered", `Vehicle ${data.vehicle_id} entered danger polygon: ${data.zone_name}`, "danger");
+      showToast(
+        "Geofence Breach Triggered",
+        `Vehicle ${data.vehicle_id} entered danger polygon: ${data.zone_name}`,
+        "danger",
+      );
     }
 
     if (type === "VEHICLE_SPEED_ANOMALY") {
       setRoads((prev) =>
         prev.map((r) =>
           r.id === data.corridor_id
-            ? { ...r, current_speed: data.current_speed, risk_score: data.updated_risk_score, status: data.status }
-            : r
-        )
+            ? {
+                ...r,
+                current_speed: data.current_speed,
+                risk_score: data.updated_risk_score,
+                status: data.status,
+              }
+            : r,
+        ),
       );
-      showToast("Vehicle Speed Anomaly Alert", `Early warning on ${data.corridor_id}: Convoy slowed to ${data.current_speed} km/h`, "warning");
+      showToast(
+        "Vehicle Speed Anomaly Alert",
+        `Early warning on ${data.corridor_id}: Convoy slowed to ${data.current_speed} km/h`,
+        "warning",
+      );
     }
 
     if (type === "INCIDENT_REPORTED" || type === "INCIDENT_SYNCED") {
-      setIncidents((prev) => [data.incident, ...prev.filter(i => i.id !== data.incident?.id)]);
-      showToast("Field Incident Synchronized", `${data.incident?.type} logged on ${data.incident?.corridor_id}`, "warning");
+      setIncidents((prev) => [
+        data.incident,
+        ...prev.filter((i) => i.id !== data.incident?.id),
+      ]);
+      showToast(
+        "Field Incident Synchronized",
+        `${data.incident?.type} logged on ${data.incident?.corridor_id}`,
+        "warning",
+      );
     }
 
     if (type === "GLOF_TRIGGERED" || type === "SEISMIC_ANOMALY") {
@@ -199,39 +256,48 @@ export default function App() {
         prev.map((l) =>
           l.id === (data.lake_id || "LAKE-SLHONAK")
             ? { ...l, monitoring_status: "CRITICAL_ALERT" }
-            : l
-        )
+            : l,
+        ),
       );
       setRoads((prev) =>
         prev.map((r) =>
           r.id === "CORR-NH10"
             ? { ...r, status: "GLOF_ALERT", risk_score: 0.96 }
-            : r
-        )
+            : r,
+        ),
       );
       setLastGlofResult(data);
-      showToast("EMERGENCY: Cryosphere GLOF Triggered", `South Lhonak burst surge moving down Teesta. NH-10 axis closed.`, "danger");
+      showToast(
+        "EMERGENCY: Cryosphere GLOF Triggered",
+        `South Lhonak burst surge moving down Teesta. NH-10 axis closed.`,
+        "danger",
+      );
     }
 
     if (type === "ALERT_CREATED") {
-      setAlerts((prev) => [data, ...prev]);
+      setAlerts((prev) => [data, ...prev.filter((a) => a.id !== data.id)]);
     }
 
     // Refresh KPI counts
-    fetch(`${API_BASE}/api/stats`).then(r => r.json()).then(res => {
-      if (res.status === "ok") setStats(res.stats);
-    });
+    fetch(`${API_BASE}/api/stats`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.status === "ok") setStats(res.stats);
+      });
   };
 
   // --- Cause & Effect Chain Trigger Methods ---
 
   // Chain 1: Rain -> Risk -> Route -> ETA -> Dashboard
   const triggerChain1 = async (corridorId = "CORR-NH10") => {
-    const res = await fetch(`${API_BASE}/api/roads/${corridorId}/rainfall-spike`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ rainfall_mm: 125.0 })
-    });
+    const res = await fetch(
+      `${API_BASE}/api/roads/${corridorId}/rainfall-spike`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rainfall_mm: 125.0 }),
+      },
+    );
     const data = await res.json();
     if (data.chain_result?.recalculated_route) {
       setActiveRoute(data.chain_result.recalculated_route);
@@ -246,11 +312,11 @@ export default function App() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        lat: 27.10,
+        lat: 27.1,
         lng: 88.48,
         speed: 21.0,
-        heading: 35.0
-      })
+        heading: 35.0,
+      }),
     });
     return await res.json();
   };
@@ -265,9 +331,10 @@ export default function App() {
       corridor_id: "CORR-NH29",
       lat: 25.75,
       lng: 93.82,
-      description: "Pagla Pahar mud and boulder slide obstructing both freight lanes.",
+      description:
+        "Pagla Pahar mud and boulder slide obstructing both freight lanes.",
       severity: "CRITICAL",
-      source: "FIELD_OFFICER_OFFLINE_SYNC"
+      source: "FIELD_OFFICER_OFFLINE_SYNC",
     });
     // 2. Synchronize queue to API
     const syncRes = await syncQueuedIncidents(API_BASE);
@@ -283,8 +350,8 @@ export default function App() {
         lake_id: lakeId,
         magnitude: 4.8,
         depth_km: 4.5,
-        classification: "ICE_ROCK_AVALANCHE_TRIGGER"
-      })
+        classification: "ICE_ROCK_AVALANCHE_TRIGGER",
+      }),
     });
     const data = await res.json();
     setLastGlofResult(data.chain_result);
@@ -298,30 +365,37 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         corridor_id: corridorId,
-        speed_drop_kmh: -26.0
-      })
+        speed_drop_kmh: -26.0,
+      }),
     });
     return await res.json();
   };
 
-  // Reset database back to clean seeded baseline
+  // Refresh the view without erasing reports or changing road conditions.
   const resetBaseline = async () => {
     try {
-      await fetch(`${API_BASE}/api/roads/CORR-NH10/rainfall-spike`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rainfall_mm: 12.0 })
-      });
       await fetchAllData();
       setActiveRoute(null);
-      showToast("Baseline Reset", "Corridors and telemetry restored to initial baseline parameters", "info");
+      showToast(
+        "View refreshed",
+        "Latest records loaded. Reports and road conditions are unchanged.",
+        "info",
+      );
     } catch (e) {
       console.error(e);
     }
   };
 
   return (
-    <div style={{ display: "flex", width: "100vw", height: "100vh", backgroundColor: "var(--bg-base)" }}>
+    <div
+      className="legacy-app"
+      style={{
+        display: "flex",
+        width: "100%",
+        height: "100vh",
+        backgroundColor: "var(--bg-base)",
+      }}
+    >
       {/* 1. Left Vertical Navigation Rail */}
       <NavigationRail
         activeTab={activeTab}
@@ -332,33 +406,57 @@ export default function App() {
       />
 
       {/* 2. Main Content Viewport */}
-      <main style={{
-        flex: 1,
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        padding: "24px 28px",
-        overflow: "hidden",
-        position: "relative"
-      }}>
-        {/* Top Header Bar */}
-        <header style={{
+      <main
+        style={{
+          flex: 1,
+          height: "100vh",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: "18px"
-        }}>
+          flexDirection: "column",
+          padding: "24px 28px",
+          overflow: "hidden",
+          position: "relative",
+        }}
+      >
+        {/* Top Header Bar */}
+        <header
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "18px",
+          }}
+        >
           <div>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "#FFFFFF", letterSpacing: "-0.02em" }}>
-              {activeTab === "command" && "Command & Accessibility Intelligence Center"}
-              {activeTab === "routing" && "Analytical Core: AI Risk-Weighted Route Optimizer"}
-              {activeTab === "telematics" && "Fleet Telematics & Closed-Loop Early Signals"}
-              {activeTab === "glof" && "Flagship Novelty: Cryosphere & GLOF Early Warning"}
-              {activeTab === "field_pwa" && "Offline-First Mobile Field Reporting PWA"}
-              {activeTab === "alerts" && "Regional Multilingual Emergency Dispatch"}
+            <h1
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                color: "#FFFFFF",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {activeTab === "command" &&
+                "Command & Accessibility Intelligence Center"}
+              {activeTab === "routing" &&
+                "Analytical Core: AI Risk-Weighted Route Optimizer"}
+              {activeTab === "telematics" &&
+                "Fleet Telematics & Closed-Loop Early Signals"}
+              {activeTab === "glof" &&
+                "Flagship Novelty: Cryosphere & GLOF Early Warning"}
+              {activeTab === "field_pwa" &&
+                "Offline-First Mobile Field Reporting PWA"}
+              {activeTab === "alerts" &&
+                "Regional Multilingual Emergency Dispatch"}
             </h1>
-            <p style={{ fontSize: "0.82rem", color: "var(--text-sub)", marginTop: "2px" }}>
-              Unified GIS, Weather, Seismic, Satellite & Fleet Telematics Architecture for North East India
+            <p
+              style={{
+                fontSize: "0.82rem",
+                color: "var(--text-sub)",
+                marginTop: "2px",
+              }}
+            >
+              Unified GIS, Weather, Seismic, Satellite & Fleet Telematics
+              Architecture for North East India
             </p>
           </div>
 
@@ -390,7 +488,10 @@ export default function App() {
         {/* Tab Content Display */}
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {activeTab === "command" && (
-            <div style={{ display: "flex", gap: "20px", height: "100%" }}>
+            <div
+              className="corridor-layout"
+              style={{ display: "flex", gap: "20px", height: "100%" }}
+            >
               {/* Left/Middle: Corridor List with Status Pills & Detail Drawer */}
               <CorridorListDrawer
                 roads={roads}
@@ -400,7 +501,7 @@ export default function App() {
               />
 
               {/* Right Hero: Large Leaflet Map */}
-              <div style={{ flex: 1, height: "100%" }}>
+              <div className="map-area" style={{ flex: 1, height: "100%" }}>
                 <InteractiveMap
                   roads={roads}
                   vehicles={vehicles}
@@ -420,7 +521,6 @@ export default function App() {
               apiBase={API_BASE}
               onRouteCalculated={(r) => {
                 setActiveRoute(r);
-                setActiveTab("command");
               }}
             />
           )}
@@ -450,44 +550,65 @@ export default function App() {
           )}
 
           {activeTab === "alerts" && (
-            <AlertsCenter
-              alerts={alerts}
-            />
+            <AlertsCenter alerts={alerts} apiBase={API_BASE} />
           )}
         </div>
 
         {/* Live Event Toast Notification */}
         {liveToast && (
-          <div style={{
-            position: "absolute",
-            bottom: "24px",
-            right: "28px",
-            background: "rgba(35, 31, 36, 0.95)",
-            border: liveToast.type === "danger" ? "1px solid #EF4444" : "1px solid var(--primary-accent)",
-            boxShadow: "0 10px 30px rgba(0, 0, 0, 0.7)",
-            backdropFilter: "blur(12px)",
-            borderRadius: "16px",
-            padding: "14px 20px",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            zIndex: 3000,
-            maxWidth: "420px",
-            animation: "slideIn 0.3s ease"
-          }}>
-            <div style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "10px",
-              background: liveToast.type === "danger" ? "rgba(239, 68, 68, 0.2)" : "rgba(232, 121, 249, 0.2)",
+          <div
+            style={{
+              position: "absolute",
+              bottom: "24px",
+              right: "28px",
+              background: "rgba(35, 31, 36, 0.95)",
+              border:
+                liveToast.type === "danger"
+                  ? "1px solid #EF4444"
+                  : "1px solid var(--primary-accent)",
+              boxShadow: "0 10px 30px rgba(0, 0, 0, 0.7)",
+              backdropFilter: "blur(12px)",
+              borderRadius: "16px",
+              padding: "14px 20px",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center"
-            }}>
-              <Bell size={16} color={liveToast.type === "danger" ? "#EF4444" : "var(--primary-accent)"} />
+              gap: "12px",
+              zIndex: 3000,
+              maxWidth: "420px",
+              animation: "slideIn 0.3s ease",
+            }}
+          >
+            <div
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "10px",
+                background:
+                  liveToast.type === "danger"
+                    ? "rgba(239, 68, 68, 0.2)"
+                    : "rgba(232, 121, 249, 0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Bell
+                size={16}
+                color={
+                  liveToast.type === "danger"
+                    ? "#EF4444"
+                    : "var(--primary-accent)"
+                }
+              />
             </div>
             <div>
-              <div style={{ fontSize: "0.86rem", fontWeight: 700, color: "#FFFFFF" }}>
+              <div
+                style={{
+                  fontSize: "0.86rem",
+                  fontWeight: 700,
+                  color: "#FFFFFF",
+                }}
+              >
                 {liveToast.title}
               </div>
               <div style={{ fontSize: "0.76rem", color: "var(--text-muted)" }}>

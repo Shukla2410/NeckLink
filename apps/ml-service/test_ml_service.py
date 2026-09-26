@@ -77,3 +77,43 @@ def test_glof_travel_time():
     data = res.json()
     assert len(data["downstream_cascade"]) >= 4
     assert data["first_settlement_eta_mins"] > 0
+
+def test_closed_corridor_never_used_even_with_zero_risk_weight():
+    response = client.post('/route', json={'origin':'Siliguri','destination':'Gangtok','risk_weight':0,'closed_corridors':['CORR-NH10']})
+    assert response.status_code == 200
+    assert 'Algarah' in response.json()['optimal_route']['path_nodes']
+
+def test_no_accessible_route():
+    response = client.post('/route', json={'origin':'Gangtok','destination':'Nathu La','closed_corridors':['CORR-NH310']})
+    assert response.status_code == 422
+    assert 'No accessible route' in response.json()['detail']
+
+def test_vehicle_weight_restriction():
+    response = client.post('/route', json={'origin':'Siliguri','destination':'Gangtok','risk_weight':0,'vehicle_weight_tonnes':25,'corridor_limits':{'CORR-NH10':20}})
+    assert response.status_code == 200
+    assert 'Algarah' in response.json()['optimal_route']['path_nodes']
+
+def test_closure_prefix_does_not_close_different_highway():
+    response = client.post('/route', json={'origin':'Imphal','destination':'Moreh','closed_corridors':['CORR-NH10']})
+    assert response.status_code == 200
+    assert response.json()['optimal_route']['path_nodes']==['Imphal','Moreh']
+
+def test_invalid_inputs_rejected():
+    assert client.post('/predict-risk',json={'rainfall_mm':-1}).status_code == 422
+    assert client.post('/route',json={'risk_weight':-2}).status_code == 422
+
+def test_other_lake_does_not_reuse_teesta_scenario():
+    assert client.post('/downstream-travel-time',json={'lake_id':'LAKE-DIBANG'}).status_code == 422
+
+def test_scenario_targets_are_sorted_and_labelled():
+    response=client.post('/downstream-travel-time',json={'downstream_targets':[{'name':'B','distance_km':40},{'name':'A','distance_km':20}]})
+    assert response.status_code==200
+    assert response.json()['downstream_cascade'][0]['target']=='A'
+    assert response.json()['source']=='ILLUSTRATIVE_TRAVEL_TIME_SCENARIO'
+
+def test_production_network_uses_only_supplied_edges_and_geometry():
+    edges=[{'corridor_id':'NEW','origin':'Village A','destination':'Clinic B','distance_km':12,'risk_score':0.1,'coordinates':[[90,26],[90.1,26.1]]}]
+    response=client.post('/route',json={'origin':'Village A','destination':'Clinic B','network_edges':edges,'use_demo_links':False})
+    assert response.status_code==200
+    assert response.json()['optimal_route']['coordinates']==[[26,90],[26.1,90.1]]
+    assert client.post('/route',json={'origin':'Siliguri','destination':'Gangtok','network_edges':edges,'use_demo_links':False}).status_code==422

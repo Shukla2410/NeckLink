@@ -612,6 +612,8 @@ const INITIAL_ALERTS = [
 ];
 
 async function seed() {
+  if (process.env.APP_MODE === "production" || process.env.ALLOW_DEMO_RESET !== "true")
+    throw new Error("Demo reset requires ALLOW_DEMO_RESET=true and is forbidden in production.");
   console.log("Starting NECKLINK Database Seeding...");
   const client = await pool.connect();
   try {

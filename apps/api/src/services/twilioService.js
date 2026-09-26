@@ -20,11 +20,17 @@ if (accountSid && authToken) {
 }
 
 export async function sendSmsAlert(to, messageBody) {
+  if (process.env.DISABLE_EXTERNAL_DELIVERY === "true")
+    return {
+      success: false,
+      status: "DISABLED",
+      message: "External delivery disabled",
+    };
   if (!client) {
     return {
       success: false,
       status: "CONFIG_MISSING",
-      message: "Twilio credentials not configured"
+      message: "Twilio credentials not configured",
     };
   }
 
@@ -35,16 +41,20 @@ export async function sendSmsAlert(to, messageBody) {
   }
 
   const prefix = "[NECKLINK EMERGENCY ALERT] ";
-  const fullBody = (messageBody.startsWith("[") ? messageBody : prefix + messageBody).slice(0, 1600);
+  const fullBody = (
+    messageBody.startsWith("[") ? messageBody : prefix + messageBody
+  ).slice(0, 1600);
 
   try {
     const message = await client.messages.create({
       body: fullBody,
       from: fromNumber,
-      to: cleanTo
+      to: cleanTo,
     });
 
-    console.log(`[TWILIO SMS] Sent to ${cleanTo} | SID: ${message.sid} | Status: ${message.status}`);
+    console.log(
+      `[TWILIO SMS] Sent to ${cleanTo} | SID: ${message.sid} | Status: ${message.status}`,
+    );
 
     return {
       success: true,
@@ -52,22 +62,31 @@ export async function sendSmsAlert(to, messageBody) {
       status: message.status,
       to: cleanTo,
       from: fromNumber,
-      date_created: message.dateCreated
+      date_created: message.dateCreated,
     };
   } catch (err) {
-    console.error(`[TWILIO SMS ERROR] Failed sending to ${cleanTo}:`, err.message);
+    console.error(
+      `[TWILIO SMS ERROR] Failed sending to ${cleanTo}:`,
+      err.message,
+    );
 
     // Provide friendly diagnostic for Twilio Trial restriction if recipient is unverified
     let hint = err.message;
     if (err.code === 21608) {
-      hint = "Twilio Trial Mode: The destination phone number must be verified in the Twilio Console (https://console.twilio.com) before sending SMS.";
+      hint =
+        "Twilio Trial Mode: The destination phone number must be verified in the Twilio Console (https://console.twilio.com) before sending SMS.";
     }
 
     return {
       success: false,
       error_code: err.code,
       message: hint,
-      original_error: err.message
+      original_error: err.message,
     };
   }
+}
+
+export async function getSmsDeliveryStatus(sid) {
+  if (!client || process.env.DISABLE_EXTERNAL_DELIVERY === "true") return null;
+  return (await client.messages(sid).fetch()).status;
 }

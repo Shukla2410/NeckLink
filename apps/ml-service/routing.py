@@ -78,23 +78,44 @@ class RoutingEngine:
         for u, v, data in edges:
             self.graph.add_edge(u, v, **data)
 
-    def calculate_route(self, origin: str, destination: str, risk_weight: float = 3.5, corridor_risks: dict = None):
+    def calculate_route(self, origin: str, destination: str, risk_weight: float = 3.5, corridor_risks: dict = None,
+                        closed_corridors=None, vehicle_weight_tonnes=0, corridor_limits=None, corridor_speeds=None, network_edges=None, use_demo_links=True):
         """
         Calculates optimal route and compares it with shortest distance route.
         risk_weight = lambda factor weighting risk vs pure distance
         """
-        if origin not in self.graph or destination not in self.graph:
-            return {"error": f"Node {origin} or {destination} not in graph network"}
-
         # Clone graph to apply dynamic real-time risk scores
-        G = self.graph.copy()
+        G = self.graph.copy() if use_demo_links else nx.Graph()
+        for edge in network_edges or []:
+            G.add_edge(edge['origin'], edge['destination'], corridor_id=edge['corridor_id'],
+                       distance_km=edge['distance_km'],risk_score=edge['risk_score'],
+                       coordinates=edge.get('coordinates',[]),coordinate_origin=edge['origin'])
+        if origin not in G or destination not in G:
+            return {"error": f"Node {origin} or {destination} not in graph network"}
+        def matches(edge_id, supplied_id):
+            key = supplied_id if supplied_id.startswith("CORR-") else "CORR-" + supplied_id
+            return edge_id == key or (edge_id.startswith(key) and edge_id[len(key):] in ("A", "B", "C"))
+
+        for u, v, data in list(G.edges(data=True)):
+            cid = data["corridor_id"]
+            closed = any(matches(cid, key) for key in (closed_corridors or []))
+            restricted = any(matches(cid, key) and 0 < limit < vehicle_weight_tonnes
+                             for key, limit in (corridor_limits or {}).items())
+            if closed or restricted:
+                G.remove_edge(u, v)
+                continue
+            for key, speed in (corridor_speeds or {}).items():
+                if matches(cid, key):
+                    data["current_speed"] = max(5, float(speed))
+        if not nx.has_path(G, origin, destination):
+            return {"error": "No accessible route is available for this vehicle. Contact your dispatcher; do not enter a closed road."}
         if corridor_risks:
             for u, v, data in G.edges(data=True):
                 cid = data.get("corridor_id")
                 # Also check matching prefix or exact
                 matched_risk = None
                 for key, val in corridor_risks.items():
-                    if key in cid or cid in key:
+                    if matches(cid, key):
                         matched_risk = val
                         break
                 if matched_risk is not None:
@@ -127,7 +148,8 @@ class RoutingEngine:
 
         # Speeds: baseline 45 km/h, reduced if high risk
         eff_speed = max(20.0, 50.0 * (1.0 - 0.5 * optimal_avg_risk))
-        eta_hours = round(optimal_dist / eff_speed, 1)
+        eta_hours = round(sum(G[u][v]["distance_km"] / G[u][v].get("current_speed", eff_speed)
+                              for u, v in zip(optimal_path[:-1], optimal_path[1:])), 2)
 
         shortest_speed = max(15.0, 50.0 * (1.0 - 0.6 * shortest_avg_risk))
         shortest_eta = round(shortest_dist / shortest_speed, 1)
@@ -135,13 +157,23 @@ class RoutingEngine:
         # Construct path coordinates for frontend Leaflet rendering
         def get_coordinates(path_nodes):
             coords = []
-            for n in path_nodes:
-                if n in self.node_locations:
-                    lng, lat = self.node_locations[n]
-                    coords.append([lat, lng])
+            for u,v in zip(path_nodes[:-1],path_nodes[1:]):
+                data=G[u][v]
+                edge_coords=data.get('coordinates')
+                if edge_coords:
+                    points=edge_coords if data.get('coordinate_origin')==u else list(reversed(edge_coords))
+                    coords.extend([[lat,lng] for lng,lat in points])
+                else:
+                    for n in [u,v]:
+                        if n in self.node_locations:
+                            lng,lat=self.node_locations[n]
+                            coords.append([lat,lng])
             return coords
 
         return {
+            "source": "DATABASE_CORRIDORS_WITH_DEMO_LINKS" if use_demo_links else "DATABASE_CORRIDORS",
+            "advisory": "Planning estimate on a simplified network. Follow verified road restrictions and local directions." if use_demo_links else "Planning estimate using imported corridors. Verify recent road conditions before departure.",
+            "closed_corridors_excluded": closed_corridors or [],
             "origin": origin,
             "destination": destination,
             "is_rerouted": is_rerouted,

@@ -1,5 +1,8 @@
 import express from "express";
-import { getAllNerHubsWeather, fetchWeatherForLocation } from "../services/weatherService.js";
+import {
+  getAllNerHubsWeather,
+  fetchWeatherForLocation,
+} from "../services/weatherService.js";
 import { query } from "../db.js";
 
 const router = express.Router();
@@ -12,7 +15,7 @@ router.get("/hubs", async (req, res) => {
       status: "ok",
       source: "OpenWeatherMap Live Telemetry",
       count: hubs.length,
-      hubs
+      hubs,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
@@ -22,9 +25,14 @@ router.get("/hubs", async (req, res) => {
 // GET weather for a specific corridor
 router.get("/corridor/:id", async (req, res) => {
   try {
-    const roadRes = await query("SELECT id, name, code, origin, destination, path_coordinates FROM corridor WHERE id = $1", [req.params.id]);
+    const roadRes = await query(
+      "SELECT id, name, code, origin, destination, path_coordinates FROM corridor WHERE id = $1",
+      [req.params.id],
+    );
     if (roadRes.rows.length === 0) {
-      return res.status(404).json({ status: "error", message: "Corridor not found" });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Corridor not found" });
     }
 
     const road = roadRes.rows[0];
@@ -38,12 +46,16 @@ router.get("/corridor/:id", async (req, res) => {
       lat = road.path_coordinates[mid][1];
     }
 
-    const weather = await fetchWeatherForLocation(lat, lon, `${road.code} (${road.origin})`);
+    const weather = await fetchWeatherForLocation(
+      lat,
+      lon,
+      `${road.code} (${road.origin})`,
+    );
     res.json({
       status: "ok",
       corridor_id: road.id,
       corridor_name: road.name,
-      weather
+      weather,
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });

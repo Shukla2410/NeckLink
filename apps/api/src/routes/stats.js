@@ -5,13 +5,16 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const [roadsRes, vehiclesRes, alertsRes, lakesRes, zonesRes] = await Promise.all([
-      query("SELECT status, risk_score FROM corridor"),
-      query("SELECT status FROM vehicle"),
-      query("SELECT severity FROM alert"),
-      query("SELECT monitoring_status FROM glacial_lake"),
-      query("SELECT severity FROM risk_zone")
-    ]);
+    const [roadsRes, vehiclesRes, alertsRes, lakesRes, zonesRes] =
+      await Promise.all([
+        query("SELECT status, risk_score FROM corridor"),
+        query("SELECT status FROM vehicle"),
+        query(
+          "SELECT severity FROM alert WHERE acknowledged_at IS NULL AND expires_at>NOW()",
+        ),
+        query("SELECT monitoring_status FROM glacial_lake"),
+        query("SELECT severity FROM risk_zone"),
+      ]);
 
     const totalCorridors = roadsRes.rows.length;
     let openCount = 0;
@@ -29,7 +32,9 @@ router.get("/", async (req, res) => {
     const trackedVehicles = vehiclesRes.rows.length;
     const activeAlerts = alertsRes.rows.length;
     const glacialLakesMonitored = lakesRes.rows.length;
-    const criticalZones = zonesRes.rows.filter(z => z.severity === "CRITICAL" || z.severity === "HIGH").length;
+    const criticalZones = zonesRes.rows.filter(
+      (z) => z.severity === "CRITICAL" || z.severity === "HIGH",
+    ).length;
 
     res.json({
       status: "ok",
@@ -42,8 +47,8 @@ router.get("/", async (req, res) => {
         vehicles_tracked: trackedVehicles,
         active_alerts: activeAlerts,
         glacial_lakes_monitored: glacialLakesMonitored,
-        critical_hazard_zones: criticalZones
-      }
+        critical_hazard_zones: criticalZones,
+      },
     });
   } catch (err) {
     res.status(500).json({ status: "error", message: err.message });
