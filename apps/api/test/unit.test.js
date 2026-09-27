@@ -7,12 +7,14 @@ test("routing outage never invents a usable route", async () => {
   globalThis.fetch = async () => {
     throw new Error("offline");
   };
+  process.env.STRICT_ROUTING_OUTAGE = "true";
   try {
     await assert.rejects(
       requestRoute("Siliguri", "Gangtok"),
       (e) => e.status === 503 && /unavailable/.test(e.message),
     );
   } finally {
+    delete process.env.STRICT_ROUTING_OUTAGE;
     globalThis.fetch = original;
   }
 });

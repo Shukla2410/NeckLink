@@ -1,12 +1,8 @@
-import "dotenv/config";
-import pg from "pg";
+import dotenv from "dotenv";
+import { pool } from "./db.js";
 
-const { Pool } = pg;
-const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://postgres:postgres@localhost:5432/necklink",
-});
+dotenv.config();
+dotenv.config({ path: new URL("../.env", import.meta.url) });
 
 const STATES = [
   { id: "AS", name: "Assam", capital: "Dispur", lat: 26.1433, lng: 91.7898 },
